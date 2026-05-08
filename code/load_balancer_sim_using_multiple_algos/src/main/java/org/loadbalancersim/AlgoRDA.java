@@ -39,18 +39,18 @@ public class AlgoRDA {
     private final double UB;
     private final double LB;
 
-    private FitnessFunction fitnessFunction;
+    private final FitnessFunction fitnessFunction;
 
     void set_alpha(float var1) {
-        this.alpha = (double) var1;
+        this.alpha = var1;
     }
 
     void set_gamma(float var1) {
-        this.gamma = (double) var1;
+        this.gamma = var1;
     }
 
     void set_beta(float var1) {
-        this.beta = (double) var1;
+        this.beta = var1;
     }
 
     public AlgoRDA(
@@ -216,7 +216,7 @@ public class AlgoRDA {
         Random rand = new Random();
 
         for (Deer commander : this.commanders) {
-            Deer randStag = (Deer) this.stags.get(rand.nextInt(this.numStags));
+            Deer randStag = this.stags.get(rand.nextInt(this.numStags));
             double b1 = rand.nextDouble();
             double b2 = rand.nextDouble();
             double[] newSol1 = new double[this.numCloudlets];
@@ -255,15 +255,15 @@ public class AlgoRDA {
         double maxFitness_amongCommanders = Double.MIN_VALUE;
 
         for (int i = 0; i < this.numCommanders; ++i) {
-            if (((Deer) this.commanders.get(i)).fitness > maxFitness_amongCommanders) {
-                maxFitness_amongCommanders = ((Deer) this.commanders.get(i)).fitness;
+            if ((this.commanders.get(i)).fitness > maxFitness_amongCommanders) {
+                maxFitness_amongCommanders = (this.commanders.get(i)).fitness;
             }
         }
 
-        double aggregateSumOfNormalizedFitness = (double) 0.0F;
+        double aggregateSumOfNormalizedFitness = 0.0F;
 
         for (int i = 0; i < this.numCommanders; ++i) {
-            normalizedCommanderFitness[i] = Math.abs(((Deer) this.commanders.get(i)).fitness - maxFitness_amongCommanders);
+            normalizedCommanderFitness[i] = Math.abs((this.commanders.get(i)).fitness - maxFitness_amongCommanders);
             aggregateSumOfNormalizedFitness += normalizedCommanderFitness[i];
         }
 
@@ -282,7 +282,7 @@ public class AlgoRDA {
             commanders[i] = new int[numHinds_ithCommander];
 
             for (int j = 0; j < numHinds_ithCommander && numOfHindsAssigned < this.numHinds; ++j) {
-                commanders[i][j] = (Integer) poolOfHinds.get(numOfHindsAssigned++);
+                commanders[i][j] = poolOfHinds.get(numOfHindsAssigned++);
                 System.out.print(commanders[i][j] + " ");
             }
 
@@ -297,7 +297,7 @@ public class AlgoRDA {
         Random rand = new Random();
 
         for (int i = 0; i < this.numCommanders; ++i) {
-            Deer commander = (Deer) this.commanders.get(i);
+            Deer commander = this.commanders.get(i);
 
             int otherHarem = rand.nextInt(numCommanders);
             while(otherHarem == i) otherHarem = rand.nextInt(numCommanders);
@@ -374,7 +374,7 @@ public class AlgoRDA {
             double curr_hind_dist = 0.0F;
 
             for (int i = 0; i < this.numCloudlets; ++i) {
-                curr_hind_dist += Math.pow(male.position[i] - curr_hind.position[i], (double) 2.0F);
+                curr_hind_dist += Math.pow(male.position[i] - curr_hind.position[i], 2.0F);
             }
 
             curr_hind_dist = Math.sqrt(curr_hind_dist);
@@ -467,7 +467,7 @@ public class AlgoRDA {
         for (Deer sol : solutions) {
             if (sol.fitness < this.bestFitness) {
                 this.bestFitness = sol.fitness;
-                this.bestPosition = (double[]) sol.position.clone();
+                this.bestPosition = sol.position.clone();
             }
         }
     }
