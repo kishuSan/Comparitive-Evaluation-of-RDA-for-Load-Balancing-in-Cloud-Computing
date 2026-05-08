@@ -59,6 +59,8 @@
   "keyToString": {
     "Application.SimRDA.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Notification.DisplayName-DoNotAsk-git.bad.executable": "Git is not installed",
+    "Notification.DoNotAsk-git.bad.executable": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
