@@ -118,7 +118,7 @@ public class FitnessFunction {
             double execTime = cloudletLength[i] / effectiveMips;
 
             vmProcessingTime[vm] += execTime;
-            responseTime[i] = vmProcessingTime[vm]; // cumulative = RT under SpaceShared
+            responseTime[i] = vmProcessingTime[vm]; // cumulative = RT under TimeShared
             vmCostTotal[vm] += execTime * vmCostRate[vm];
         }
 
