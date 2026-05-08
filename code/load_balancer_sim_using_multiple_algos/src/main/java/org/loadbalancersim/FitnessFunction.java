@@ -118,7 +118,7 @@ public class FitnessFunction {
             double execTime = cloudletLength[i] / effectiveMips;
 
             vmProcessingTime[vm] += execTime;
-            responseTime[i] = vmProcessingTime[vm]; // cumulative = RT under TimeShared
+            responseTime[i] = vmProcessingTime[vm]; // cumulative = RT under TimeSharedScheduler
             vmCostTotal[vm] += execTime * vmCostRate[vm];
         }
 
@@ -196,15 +196,15 @@ public class FitnessFunction {
     // best solution (lowest raw value) → 0.0
     // worst solution (highest raw value) → 1.0
     private double normalizeMin(double value, double min, double max) {
-        if (max == min) return 0.0; // all solutions identical on this metric
-        return (value - min) / (max - min);
+        if (max <= min) return 1.0;
+        return Math.max(0, Math.min(1, (max - value) / (max - min)));
     }
 
     // Equation 10 — normalize a metric we MAXIMIZE
     // best solution (highest raw value) → 1.0
     // worst solution (lowest raw value) → 0.0
     private double normalizeMax(double value, double min, double max) {
-        if (max == min) return 1.0; // all solutions identical on this metric
-        return (value - min) / (max - min);
+        if (max == min) return 1.0;
+        return Math.max(0, Math.min(1, (value - min)/(max - min)));
     }
 }

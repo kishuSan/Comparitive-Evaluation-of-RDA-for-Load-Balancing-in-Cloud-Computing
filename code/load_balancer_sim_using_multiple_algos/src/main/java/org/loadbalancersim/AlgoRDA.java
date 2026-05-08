@@ -41,29 +41,28 @@ public class AlgoRDA {
 
     private final FitnessFunction fitnessFunction;
 
-    void set_alpha(float var1) {
-        this.alpha = var1;
-    }
+    private static final Random rand = new Random();
 
-    void set_gamma(float var1) {
-        this.gamma = var1;
-    }
+    void set_alpha(float var1) { this.alpha = var1; }
 
-    void set_beta(float var1) {
-        this.beta = var1;
-    }
+    void set_gamma(float var1) { this.gamma = var1; }
+
+    void set_beta(float var1) { this.beta = var1; }
 
     public AlgoRDA(
-        int numVMs,
-        int numCloudlets_requests,
-        double[] cloudletLength,
-        double[] vmMips,
-        double[] vmCostRate,
-        double[] vmAvailability,
-        double w1, double w2, double w3, double w4
+            int iterations,
+            int numPopulation,
+            int numVMs,
+            int numCloudlets_requests,
+            double[] cloudletLength,
+            double[] vmMips,
+            double[] vmCostRate,
+            double[] vmAvailability,
+            double w1, double w2, double w3, double w4,
+            double alpha, double beta, double gamma
     ) {
-        this.numIterations = 100;
-        this.numPopulation = 100;
+        this.numIterations = iterations;
+        this.numPopulation = numPopulation;
         this.numMales = Math.max(1, (int) Math.round(this.numPopulation * (double).20F));
         this.numHinds = this.numPopulation - this.numMales;
         this.uniID = 0;
@@ -74,9 +73,9 @@ public class AlgoRDA {
         this.stags = new ArrayList<Deer>();
         this.allSolutions = new ArrayList<Deer>();
         this.fitnessPool = new ArrayList<Deer>();
-        this.alpha = 0.5F;
-        this.beta = 0.2;
-        this.gamma = 0.4;
+        this.alpha = alpha;
+        this.beta = beta;
+        this.gamma = gamma;
         this.LB = 0.0F;
 
         if (numVMs > 0 && numCloudlets_requests > 0) {
@@ -98,8 +97,6 @@ public class AlgoRDA {
     }
 
     private void initializePopulation() {
-        Random rand = new Random();
-
         while (this.uniID++ < this.numPopulation) {
             double[] sol = new double[this.numCloudlets];
             // generating a random solution initially
@@ -129,7 +126,7 @@ public class AlgoRDA {
         double prevBest = Double.MAX_VALUE;
 
         for (int it = 0; it < this.numIterations; ++it) {
-            System.out.println("iter : " + it);
+//            System.out.println("iter : " + it);
 
             // bounds from existing rawMetrics — no need to re-evaluate positions
             List<QoSMetrics> currentMetrics = new ArrayList<>();
@@ -151,17 +148,25 @@ public class AlgoRDA {
                 noImprovement = 0;
             }
 
-            if (bestFitness <= 1e-6) break;          // near-optimal
-            if (noImprovement >= 10) break;          // convergence
+            if (bestFitness <= 1e-8)
+            {
+                System.out.println("best fitness reached at: " + it + ",fitness: "+ bestFitness);
+                break;          // near-optimal
+            }
+            if (noImprovement >= 10)
+            {
+                System.out.println("reached convergence, hence breaking loop at: " + it + ", no improvement since:" + noImprovement);
+                break;         // convergence
+            }
         }
 
         int[] bestVmAssignment = new int[this.numCloudlets];
-        System.out.println("best vm assignment : ");
+//        System.out.println("best vm assignment : ");
         for (int i = 0; i < this.numCloudlets; ++i) {
             bestVmAssignment[i] = (int) this.bestPosition[i];
-            System.out.print((int) this.bestPosition[i] + " ");
+//            System.out.print((int) this.bestPosition[i] + " ");
         }
-        System.out.println("=======");
+//        System.out.println("=======");
         return bestVmAssignment;
     }
 
@@ -185,8 +190,6 @@ public class AlgoRDA {
     }
 
     private void roaringPhase(PopulationBounds bounds) {
-        Random rand = new Random();
-
         for (Deer male : this.males) {
             double a1 = rand.nextDouble();
             double a2 = rand.nextDouble();
@@ -213,8 +216,6 @@ public class AlgoRDA {
     }
 
     private void fightingPhase(PopulationBounds bounds) {
-        Random rand = new Random();
-
         for (Deer commander : this.commanders) {
             Deer randStag = this.stags.get(rand.nextInt(this.numStags));
             double b1 = rand.nextDouble();
@@ -249,7 +250,7 @@ public class AlgoRDA {
     }
 
     private int[][] formHarems() {
-        System.out.println("Harem Formation:");
+//        System.out.println("Harem Formation:");
         int[][] commanders = new int[this.numCommanders][];
         double[] normalizedCommanderFitness = new double[this.numCommanders];
         double maxFitness_amongCommanders = Double.MIN_VALUE;
@@ -283,19 +284,16 @@ public class AlgoRDA {
 
             for (int j = 0; j < numHinds_ithCommander && numOfHindsAssigned < this.numHinds; ++j) {
                 commanders[i][j] = poolOfHinds.get(numOfHindsAssigned++);
-                System.out.print(commanders[i][j] + " ");
+//                System.out.print(commanders[i][j] + " ");
             }
-
-            System.out.println();
+//            System.out.println();
         }
 
-        System.out.println("=====");
+//        System.out.println("=====");
         return commanders;
     }
 
     private void matingPhase(int[][] harems, PopulationBounds bounds) {
-        Random rand = new Random();
-
         for (int i = 0; i < this.numCommanders; ++i) {
             Deer commander = this.commanders.get(i);
 
@@ -332,7 +330,6 @@ public class AlgoRDA {
     private void mate(Deer male, Deer hind, PopulationBounds bounds) {
         if (hind == null) return;
 
-        Random rand = new Random();
         double c = rand.nextDouble();
         double[] offspring = new double[this.numCloudlets];
 
@@ -403,10 +400,10 @@ public class AlgoRDA {
         this.fitnessPool.clear();
         this.allSolutions = newSolution;
 
-        this.males      = new ArrayList<>(this.allSolutions.subList(0, this.numMales));
-        this.hinds      = new ArrayList<>(this.allSolutions.subList(this.numMales, this.numPopulation));
+        this.males = new ArrayList<>(this.allSolutions.subList(0, this.numMales));
+        this.hinds = new ArrayList<>(this.allSolutions.subList(this.numMales, this.numPopulation));
         this.commanders = new ArrayList<>(this.males.subList(0, this.numCommanders));
-        this.stags      = new ArrayList<>(this.males.subList(this.numCommanders, this.numMales));
+        this.stags = new ArrayList<>(this.males.subList(this.numCommanders, this.numMales));
     }
 
     private ArrayList<Deer> rouletteWheelSelect(ArrayList<Deer> hindPool, int numToSelect) {
@@ -433,7 +430,6 @@ public class AlgoRDA {
         }
 
         // Step 4: spin the wheel numToSelect times (without replacement)
-        Random rand = new Random();
         Set<Integer> selectedIndices = new LinkedHashSet<>();
         int attempts = 0;
         int maxAttempts = numToSelect * 100;

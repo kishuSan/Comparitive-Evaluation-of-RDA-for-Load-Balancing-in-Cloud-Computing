@@ -47,6 +47,8 @@ public class SimulationUtils {
     public static final double[] VM_COST_TYPES = {0.05, 0.08, 0.10, 0.15};
     public static final double[] VM_AVAILABILITY_TYPES = {1.0, 0.9, 0.8, 0.7};
 
+    private static final Random rand_42 = new Random(42);
+    private static final Random rand_84 = new Random(84);
 
 
     public static Datacenter createDatacenter(CloudSimPlus simulation) {
@@ -113,45 +115,35 @@ public class SimulationUtils {
 
     public static List<Vm> createVMs(int numVMs) {
         List<Vm> vmList = new ArrayList<>();
-        Random rand = new Random(42);
+
         for (int i = 0; i < numVMs; i++) {
             int mips = VM_MIPS_TYPES[i % VM_MIPS_TYPES.length];
-            int pes = 1 + rand.nextInt(4);
-            Vm vm = new VmSimple(mips, pes);
-            vm.setCloudletScheduler(new CloudletSchedulerTimeShared());
+            Vm vm = new VmSimple(mips, 1);
+//            vm.setCloudletScheduler(new CloudletSchedulerTimeShared());
+            vm.setCloudletScheduler(new CloudletSchedulerSpaceShared());
             vm.setRam(2048).setBw(1000).setSize(10000);
             vmList.add(vm);
         }
         return vmList;
     }
 
-    // cloudlet length — single source of truth, shared with AlgoRDA
     public static double[] createCloudletLengths(int numCloudlets) {
         double[] lengths = new double[numCloudlets];
-        Arrays.fill(lengths, 500);
+
+        for (int i = 0; i < numCloudlets; i++) {
+            double p = rand_42.nextDouble();
+            if (p < 0.6) lengths[i] = 5000 + rand_42.nextInt(10000);
+            else if (p < 0.9) lengths[i] = 15000 + rand_42.nextInt(30000);
+            else lengths[i] = 10000 + rand_42.nextInt(40000);
+        }
         return lengths;
     }
-
-//    public static double[] createCloudletLengths(int numCloudlets) {
-//        double[] lengths = new double[numCloudlets];
-//        java.util.Random rand = new java.util.Random();
-//
-//        for (int i = 0; i < numCloudlets; i++) {
-//            double p = rand.nextDouble();
-//            if (p < 0.6) lengths[i] = 500 + rand.nextInt(1000);
-//            else if (p < 0.9) lengths[i] = 1500 + rand.nextInt(3000);
-//            else lengths[i] = 5000 + rand.nextInt(10000);
-//        }
-//        return lengths;
-//    }
 
     public static List<Cloudlet> createCloudlets(int numCloudlets) {
         List<Cloudlet> cloudletList = new ArrayList<>();
         double[] lengths = createCloudletLengths(numCloudlets);
-        Random rand = new Random(84);
         for (int i = 0; i < numCloudlets; i++) {
-            int pes = 1 + rand.nextInt(4);
-            Cloudlet cloudlet = new CloudletSimple((long) lengths[i], pes);
+            Cloudlet cloudlet = new CloudletSimple((long) lengths[i], 1);
             cloudlet.setUtilizationModelCpu(new UtilizationModelFull());
             cloudlet.setUtilizationModelRam(UtilizationModel.NULL);
             cloudlet.setUtilizationModelBw(UtilizationModel.NULL);
@@ -171,38 +163,47 @@ public class SimulationUtils {
         }
     }
 
+    public static int getNumSuccessfulRuns(List<Cloudlet> list)
+    {
+        int success = 0;
+        for(Cloudlet cl : list) if(cl.getStatus() == Cloudlet.Status.SUCCESS) success++;
+        return success;
+    }
+
     public static double getMakeSpan(List<Cloudlet> list) {
         double makespan = 0;
-        for (Cloudlet cl : list) makespan = Math.max(makespan, cl.getFinishTime());
+        for (Cloudlet cl : list)
+            if (cl.getStatus() == Cloudlet.Status.SUCCESS) makespan = Math.max(makespan, cl.getFinishTime());
         return makespan;
     }
 
     public static double getAvgRT(List<Cloudlet> list) {
         double total = 0;
-        for (Cloudlet cl : list) total += cl.getFinishTime();
+        for (Cloudlet cl : list) total += cl.getFinishTime() - cl.getBrokerArrivalTime();
         return list.isEmpty() ? 0 : total / list.size();
     }
 
-    public static double getTotalCost(List<Cloudlet> list, int numVMs) {
+    public static double getTotalCost(List<Cloudlet> list) {
+        double[] vmCostRate = getVmCostRate(NUM_VMS); // already available here
         double totalCost = 0;
-        double[] vmCostRate = getVmCostRate(numVMs);
         for (Cloudlet cl : list) {
-            int vmId = (int) cl.getVm().getId();
-            totalCost += cl.getTotalExecutionTime() * vmCostRate[vmId];
+            int vmIdx = (int)(cl.getVm().getId() % vmCostRate.length);
+            totalCost += cl.getTotalExecutionTime() * vmCostRate[vmIdx];
         }
         return totalCost;
     }
 
-    public static double getAvgUtil(List<Cloudlet> list, List<Vm> vmList, double makespan){
+    public static double getAvgUtil(List<Cloudlet> list, List<Vm> vmList, double makespan) {
         double totalUtil = 0;
         for (Vm vm : vmList) {
             double vmTime = 0;
             for (Cloudlet cl : list) {
-                if (cl.getVm().getId() == vm.getId()) {
+                if (cl.getStatus() == Cloudlet.Status.SUCCESS && cl.getVm().getId() == vm.getId()) {
                     vmTime += cl.getTotalExecutionTime();
                 }
             }
-            totalUtil += (makespan > 0) ? (vmTime / makespan) : 0;
+            double vmUtil = (makespan > 0) ? Math.min(vmTime / makespan, 1.0) : 0;
+            totalUtil += vmUtil;
         }
         return vmList.isEmpty() ? 0 : totalUtil / vmList.size();
     }
