@@ -149,21 +149,21 @@ public class AlgoRDA {
 
             fitness_for_logs_convergence[it] = bestFitness;
 
-            if (Math.abs(prevBest - bestFitness) < 1e-5) noImprovement++;
-            else noImprovement = 0;
+            // if (Math.abs(prevBest - bestFitness) < 1e-5) noImprovement++;
+            // else noImprovement = 0;
 
-            if (noImprovement >= 15)
-            {
-                System.out.println(
-                    "Reached convergence at iteration: "
-                    + it
-                    + ", no improvement count: "
-                    + noImprovement
-                );
-                break;
-            }
+            // if (noImprovement >= 15)
+            // {
+            //     System.out.println(
+            //         "Reached convergence at iteration: "
+            //         + it
+            //         + ", no improvement count: "
+            //         + noImprovement
+            //     );
+            //     break;
+            // }
 
-            prevBest = bestFitness;
+            // prevBest = bestFitness;
         }
 
         int[] bestVmAssignment = new int[this.numCloudlets];
