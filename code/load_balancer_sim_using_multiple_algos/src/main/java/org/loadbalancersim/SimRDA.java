@@ -8,6 +8,7 @@ import org.cloudsimplus.vms.Vm;
 import org.cloudsimplus.util.Log;
 import ch.qos.logback.classic.Level;
 
+import java.util.Arrays;
 import java.util.List;
 import java.io.File;
 import java.io.FileWriter;
@@ -19,7 +20,7 @@ public class SimRDA {
     private final static int runs = 30;
 
     //population
-    private final static int population = 100;
+    private final static int population = 200;
     private final static int iterations = 100;
 
     // sensitivity parameters
@@ -28,10 +29,10 @@ public class SimRDA {
     private final static double gamma = 0.4;
 
     // fitness function weights for QOS parameters — must sum to 1.0
-    private final static double w1 = 0.35; // makespan
+    private final static double w1 = 0.30; // makespan
     private final static double w2 = 0.25; // utilization
     private final static double w3 = 0.20; // cost
-    private final static double w4 = 0.20; // response time
+    private final static double w4 = 0.25; // response time
 
     public static void main(String[] args) {
         Log.setLevel(Level.WARN);
@@ -82,20 +83,33 @@ public class SimRDA {
 
         System.out.println("Simulation Results:");
 
+        int[] vmCount = new int[numVMs];
+        for (int vmId : vmAssignments) vmCount[vmId]++;
+
+        int max_requests_assigned = Arrays.stream(vmCount).max().getAsInt();
+        int min = Arrays.stream(vmCount).min().getAsInt();
+        double avg = Arrays.stream(vmCount).average().getAsDouble();
+
         int success = SimulationUtils.getNumSuccessfulRuns(finished);
         double makespan = SimulationUtils.getMakeSpan(finished);
         double avgRT = SimulationUtils.getAvgRT(finished);
         double avgUtil = SimulationUtils.getAvgUtil(finished, vmList, makespan);
         double totalCost = SimulationUtils.getTotalCost(finished);
+        double bestFitness = AlgoRDA.getBestFitness();
+        double[] fitness_logs_for_convergence = AlgoRDA.getFitness_for_logs_convergence();
 
         System.out.println("SuccessfulRuns: " + success + "/" + 1000);
+        System.out.println("VM load — max: " + max_requests_assigned + ", min: " + min + ", avg: " + avg);
+        System.out.println("BestFitness: " + bestFitness);
         System.out.println("Makespan: " + makespan);
         System.out.println("Average Response Time: " + avgRT);
         System.out.println("Average Utilization: " + avgUtil);
         System.out.println("Total Cost: " + totalCost);
+        System.out.print("Fitness across runs: ");
+        for(int i = 0; i < runs; i++) System.out.printf("%.6f ,", fitness_logs_for_convergence[i]);
         System.out.println();
 
-        updateCSV(iter, success, finished.size(), makespan, avgRT, avgUtil, totalCost);
+        updateCSV(iter, success, finished.size(), makespan, avgRT, avgUtil, totalCost, bestFitness, max_requests_assigned);
         // cleanup
         vmList = null;
         cloudletList = null;
@@ -133,7 +147,9 @@ public class SimRDA {
             double makespan,
             double avgRT,
             double avgUtil,
-            double totalCost
+            double totalCost,
+            double bestFitness,
+            int max_requests_assigned
     ) {
 
         String fileName = "results.csv";
@@ -159,7 +175,9 @@ public class SimRDA {
                         "Makespan," +
                         "AvgResponseTime," +
                         "AvgUtilization," +
-                        "TotalCost"
+                        "TotalCost," +
+                        "BestFitness," +
+                        "Max Requests Assigned"
                 );
             }
 
@@ -175,7 +193,9 @@ public class SimRDA {
                     String.format("%.2f", makespan) + "," +
                     String.format("%.2f", avgRT) + "," +
                     String.format("%.2f", avgUtil) + "," +
-                    String.format("%.2f", totalCost)
+                    String.format("%.2f", totalCost) + "," +
+                    String.format("%.6f", bestFitness) + ',' +
+                    String.format("%d", max_requests_assigned)
             );
 
             pw.close();

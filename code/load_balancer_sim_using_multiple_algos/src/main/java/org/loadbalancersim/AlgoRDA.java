@@ -1,5 +1,7 @@
 package org.loadbalancersim;
 
+import lombok.Getter;
+
 import java.util.*;
 
 class Deer {
@@ -22,10 +24,13 @@ public class AlgoRDA {
     private final int numStags;
     private final int numCommanders;
     private final int numIterations;
-    private final int numVMs;
+    private int numVMs;
     private final int numCloudlets;
     private int uniID;
-    private double bestFitness;
+    @Getter
+    private static double bestFitness;
+    @Getter
+    private static double[] fitness_for_logs_convergence;
     private double[] bestPosition;
     private List<Deer> allSolutions;
     private List<Deer> males;
@@ -40,17 +45,10 @@ public class AlgoRDA {
     private final double LB;
 
     private final FitnessFunction fitnessFunction;
-
     private static final Random rand = new Random();
 
-    void set_alpha(float var1) { this.alpha = var1; }
-
-    void set_gamma(float var1) { this.gamma = var1; }
-
-    void set_beta(float var1) { this.beta = var1; }
-
     public AlgoRDA(
-            int iterations,
+            int numIterations,
             int numPopulation,
             int numVMs,
             int numCloudlets_requests,
@@ -61,12 +59,14 @@ public class AlgoRDA {
             double w1, double w2, double w3, double w4,
             double alpha, double beta, double gamma
     ) {
-        this.numIterations = iterations;
+        this.numIterations = numIterations;
         this.numPopulation = numPopulation;
         this.numMales = Math.max(1, (int) Math.round(this.numPopulation * (double).20F));
         this.numHinds = this.numPopulation - this.numMales;
+        this.numVMs = numVMs;
         this.uniID = 0;
-        this.bestFitness = Double.MAX_VALUE;
+        bestFitness = Double.MAX_VALUE;
+        fitness_for_logs_convergence = new double[numIterations];
         this.males = new ArrayList<Deer>();
         this.hinds = new ArrayList<Deer>();
         this.commanders = new ArrayList<Deer>();
@@ -79,7 +79,6 @@ public class AlgoRDA {
         this.LB = 0.0F;
 
         if (numVMs > 0 && numCloudlets_requests > 0) {
-            this.numVMs = numVMs;
             this.numCloudlets = numCloudlets_requests;
             this.fitnessFunction = new FitnessFunction(
                 numVMs, numCloudlets_requests,
@@ -101,7 +100,8 @@ public class AlgoRDA {
             double[] sol = new double[this.numCloudlets];
             // generating a random solution initially
             for (int i = 0; i < this.numCloudlets; ++i) {
-                sol[i] = this.LB + (this.UB - this.LB) * rand.nextDouble();
+//                sol[i] = rand.nextDouble() * (UB - LB) + LB;
+                sol[i] = rand.nextDouble() * numVMs;
             }
 
             this.allSolutions.add(new Deer(this.uniID, sol, 0.0));
@@ -128,11 +128,11 @@ public class AlgoRDA {
         for (int it = 0; it < this.numIterations; ++it) {
 //            System.out.println("iter : " + it);
 
-            // bounds from existing rawMetrics — no need to re-evaluate positions
+            evaluatePopulation(this.allSolutions);
             List<QoSMetrics> currentMetrics = new ArrayList<>();
             for (Deer deer : this.allSolutions) currentMetrics.add(deer.rawMetrics);
             PopulationBounds bounds = fitnessFunction.computeBounds(currentMetrics);
-
+            
             this.roaringPhase(bounds);
             this.selectCommanders();
             this.fightingPhase(bounds);
@@ -141,6 +141,8 @@ public class AlgoRDA {
             this.selectNextGen();
 
             this.updateBestSolution(this.allSolutions);
+
+            fitness_for_logs_convergence[it] = bestFitness;
 
             if (Math.abs(prevBest - bestFitness) < 1e-6) {
                 noImprovement++;
@@ -202,6 +204,8 @@ public class AlgoRDA {
                 newPosition[i] = Math.max(this.LB, Math.min(this.UB, newVal));
             }
 
+            clampPositions(newPosition);
+
             // normalize challenger using the SAME bounds as the current population
             QoSMetrics challengerMetrics = fitnessFunction.evaluateRaw(newPosition);
             double challengerFitness = fitnessFunction.normalizeAndScore(challengerMetrics, bounds);
@@ -229,6 +233,9 @@ public class AlgoRDA {
                 newSol1[i] = Math.max(this.LB, Math.min(this.UB, avg + offset));
                 newSol2[i] = Math.max(this.LB, Math.min(this.UB, avg - offset));
             }
+
+            clampPositions(newSol1);
+            clampPositions(newSol2);
 
             QoSMetrics m1 = fitnessFunction.evaluateRaw(newSol1);
             QoSMetrics m2 = fitnessFunction.evaluateRaw(newSol2);
@@ -338,6 +345,7 @@ public class AlgoRDA {
             offspring[i] = Math.max(this.LB, Math.min(this.UB, val));
         }
 
+        clampPositions(offspring);
         QoSMetrics m = fitnessFunction.evaluateRaw(offspring);
         double offspringFitness = fitnessFunction.normalizeAndScore(m, bounds);
 
@@ -461,8 +469,8 @@ public class AlgoRDA {
 
     private void updateBestSolution(List<Deer> solutions) {
         for (Deer sol : solutions) {
-            if (sol.fitness < this.bestFitness) {
-                this.bestFitness = sol.fitness;
+            if (sol.fitness < bestFitness) {
+                bestFitness = sol.fitness;
                 this.bestPosition = sol.position.clone();
             }
         }
@@ -472,5 +480,12 @@ public class AlgoRDA {
         this.males.sort(Comparator.comparingDouble((deer) -> deer.fitness));
         this.commanders = this.males.subList(0, this.numCommanders);
         this.stags = this.males.subList(this.numCommanders, this.numMales);
+    }
+
+    public void clampPositions(double[] position) {
+        for (int i = 0; i < position.length; i++) {
+            // keep in [0, numVMs) so decoding is always valid
+            position[i] = ((position[i] % this.numVMs) + this.numVMs) % this.numVMs;
+        }
     }
 }
