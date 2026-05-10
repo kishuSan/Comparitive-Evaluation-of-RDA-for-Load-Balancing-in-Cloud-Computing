@@ -20,7 +20,7 @@ public class SimRDA {
     private final static int runs = 30;
 
     //population
-    private final static int population = 200;
+    private final static int population = 100;
     private final static int iterations = 100;
 
     // sensitivity parameters
@@ -142,7 +142,7 @@ public class SimRDA {
     }
 
 
-    // ============================================
+// ========================================CSV Writer============================================
     public static void updateCSV(
             int runId,
             int success,
