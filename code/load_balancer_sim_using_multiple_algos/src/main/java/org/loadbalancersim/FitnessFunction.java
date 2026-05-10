@@ -44,13 +44,25 @@ public class FitnessFunction {
     private final double[] vmCostRate;      // cost per second per VM
     private final double[] vmAvailability;  // baseline availability [0.0 - 1.0] (pre-existing load)
 
-    private static final double MIN_AVAILABILITY = 0.1; // floor so VM never hits zero MIPS
+    private static final double MIN_AVAILABILITY = 0.000001; // floor so VM never hits zero MIPS
 
     // weights (must sum to 1.0)
     private final double w1; // makespan      (minimize)
     private final double w2; // utilization   (maximize)
     private final double w3; // cost          (minimize)
     private final double w4; // response time (minimize)
+
+    private static final double maxMakespan = 10000;
+    private static final double minMakespan = 20;
+
+    private static final double maxRT = 5000;
+    private static final double minRT = 10;
+
+    private static final double maxUtil = 0.95;
+    private static final double minUtil = 0.05;
+
+    private static final double maxCost = 2000;
+    private static final double minCost = 100;
 
     public FitnessFunction(
         int numVMs,
@@ -88,7 +100,7 @@ public class FitnessFunction {
         // decode solution vector → VM assignment
         int[] assignment = new int[numCloudlets];
         for (int i = 0; i < numCloudlets; i++) {
-            assignment[i] = Math.min((int) Math.floor(position[i]), numVMs - 1);
+            assignment[i] = Math.min((int) Math.round(position[i]), numVMs - 1);
         }
 
         double[] vmProcessingTime = new double[numVMs];
@@ -106,8 +118,9 @@ public class FitnessFunction {
             // step 2: derive how relatively loaded this VM is right now
             // first cloudlet on any VM → dynamicAvailability = 1.0
             // as VM accumulates more work relative to others → degrades toward MIN_AVAILABILITY
-            double dynamicAvailability = (currentMaxLoad > 0) ? 1.0 - (vmProcessingTime[vm] / currentMaxLoad) : 1.0;
-            dynamicAvailability = Math.max(dynamicAvailability, MIN_AVAILABILITY);
+   
+            double loadRatio = (currentMaxLoad > 0) ? vmProcessingTime[vm] / currentMaxLoad : 0;
+            double dynamicAvailability = Math.max(0.3, 1.0 - 0.7 * loadRatio);
 
             // step 3: combine baseline (pre-existing load) with dynamic (assignment-driven load)
             // vmAvailability[vm] = what the VM had before this batch arrived
@@ -150,12 +163,12 @@ public class FitnessFunction {
     public double normalizeAndScore(QoSMetrics m, PopulationBounds bounds) {
 
         // Equation 9 — metrics we MINIMIZE (lower raw value → lower normalized score → better)
-        double nMakespan = normalizeMin(m.makespan, bounds.minMakespan, bounds.maxMakespan);
-        double nCost = normalizeMin(m.cost, bounds.minCost, bounds.maxCost);
-        double nRT = normalizeMin(m.avgResponseTime, bounds.minRT, bounds.maxRT);
+        double nMakespan = normalizeMin(m.makespan, minMakespan, maxMakespan);
+        double nCost = normalizeMin(m.cost, minCost, maxCost);
+        double nRT = normalizeMin(m.avgResponseTime, minRT, maxRT);
 
         // Equation 10 — metrics we MAXIMIZE (higher raw value → higher normalized score → better)
-        double nUtil = normalizeMax(m.utilization, bounds.minUtil, bounds.maxUtil);
+        double nUtil = normalizeMax(m.utilization, minUtil, maxUtil);
 
         // Equation 11 — weighted fitness
         // (1.0 - nUtil) inverts utilization so that all four terms are "lower = better"
@@ -197,7 +210,7 @@ public class FitnessFunction {
     // worst solution (highest raw value) → 1.0
     private double normalizeMin(double value, double min, double max) {
         if (max <= min) return 1.0;
-        return Math.max(0, Math.min(1, (max - value) / (max - min)));
+        return Math.max(0, Math.min(1,(value - min) / (max - min)));
     }
 
     // Equation 10 — normalize a metric we MAXIMIZE

@@ -47,6 +47,11 @@ public class AlgoRDA {
     private final FitnessFunction fitnessFunction;
     private static final Random rand = new Random();
 
+//    public static double getBestFitness(){
+//        double bestFitnessCopy = AlgoRDA.getBestFitness();
+//        return bestFitnessCopy;
+//    }
+
     public AlgoRDA(
             int numIterations,
             int numPopulation,
@@ -100,8 +105,8 @@ public class AlgoRDA {
             double[] sol = new double[this.numCloudlets];
             // generating a random solution initially
             for (int i = 0; i < this.numCloudlets; ++i) {
-//                sol[i] = rand.nextDouble() * (UB - LB) + LB;
-                sol[i] = rand.nextDouble() * numVMs;
+                sol[i] = rand.nextDouble() * (UB - LB) + LB;
+//                sol[i] = rand.nextDouble() * numVMs;
             }
 
             this.allSolutions.add(new Deer(this.uniID, sol, 0.0));
@@ -144,28 +149,27 @@ public class AlgoRDA {
 
             fitness_for_logs_convergence[it] = bestFitness;
 
-            if (Math.abs(prevBest - bestFitness) < 1e-6) {
-                noImprovement++;
-            } else {
-                noImprovement = 0;
+            if (Math.abs(prevBest - bestFitness) < 1e-5) noImprovement++;
+            else noImprovement = 0;
+
+            if (noImprovement >= 15)
+            {
+                System.out.println(
+                    "Reached convergence at iteration: "
+                    + it
+                    + ", no improvement count: "
+                    + noImprovement
+                );
+                break;
             }
 
-            if (bestFitness <= 1e-8)
-            {
-                System.out.println("best fitness reached at: " + it + ",fitness: "+ bestFitness);
-                break;          // near-optimal
-            }
-            if (noImprovement >= 10)
-            {
-                System.out.println("reached convergence, hence breaking loop at: " + it + ", no improvement since:" + noImprovement);
-                break;         // convergence
-            }
+            prevBest = bestFitness;
         }
 
         int[] bestVmAssignment = new int[this.numCloudlets];
 //        System.out.println("best vm assignment : ");
         for (int i = 0; i < this.numCloudlets; ++i) {
-            bestVmAssignment[i] = (int) this.bestPosition[i];
+            bestVmAssignment[i] = Math.toIntExact(Math.round(this.bestPosition[i]));
 //            System.out.print((int) this.bestPosition[i] + " ");
         }
 //        System.out.println("=======");
@@ -199,12 +203,15 @@ public class AlgoRDA {
             double[] newPosition = new double[this.numCloudlets];
 
             for (int i = 0; i < this.numCloudlets; ++i) {
-                double offset = a1 * (a2 * (this.UB - this.LB) + this.LB);
+                // ori
+                // double offset = a1 * (a2 * (this.UB - this.LB) + this.LB);
+                double range = (UB - LB) * 0.1;
+                double offset = a1 * a2 * range;
                 double newVal = (a3 >= 0.5) ? male.position[i] + offset : male.position[i] - offset;
                 newPosition[i] = Math.max(this.LB, Math.min(this.UB, newVal));
             }
 
-            clampPositions(newPosition);
+//            clampPositions(newPosition);
 
             // normalize challenger using the SAME bounds as the current population
             QoSMetrics challengerMetrics = fitnessFunction.evaluateRaw(newPosition);
@@ -229,13 +236,17 @@ public class AlgoRDA {
 
             for (int i = 0; i < this.numCloudlets; ++i) {
                 double avg = (commander.position[i] + randStag.position[i]) / 2.0;
-                double offset = b1 * ( b2 * (this.UB - this.LB) + this.LB);
+
+                double range = (UB - LB) * 0.1;
+                double offset = b1 * b2 * range;
+                //ori
+                // double offset = b1 * ( b2 * (this.UB - this.LB) + this.LB);
                 newSol1[i] = Math.max(this.LB, Math.min(this.UB, avg + offset));
                 newSol2[i] = Math.max(this.LB, Math.min(this.UB, avg - offset));
             }
 
-            clampPositions(newSol1);
-            clampPositions(newSol2);
+//            clampPositions(newSol1);
+//            clampPositions(newSol2);
 
             QoSMetrics m1 = fitnessFunction.evaluateRaw(newSol1);
             QoSMetrics m2 = fitnessFunction.evaluateRaw(newSol2);
@@ -341,11 +352,15 @@ public class AlgoRDA {
         double[] offspring = new double[this.numCloudlets];
 
         for (int i = 0; i < this.numCloudlets; i++) {
-            double val = ((male.position[i] + hind.position[i]) / 2.0) + c * (this.UB - this.LB);
+            // ori
+            // double val = ((male.position[i] + hind.position[i]) / 2.0) + (offset)
+
+            double range = (this.UB - this.LB) * 0.1; // small perturbation
+            double val = ((male.position[i] + hind.position[i]) / 2.0) + (2 * c - 1) * range;
             offspring[i] = Math.max(this.LB, Math.min(this.UB, val));
         }
 
-        clampPositions(offspring);
+//        clampPositions(offspring);
         QoSMetrics m = fitnessFunction.evaluateRaw(offspring);
         double offspringFitness = fitnessFunction.normalizeAndScore(m, bounds);
 

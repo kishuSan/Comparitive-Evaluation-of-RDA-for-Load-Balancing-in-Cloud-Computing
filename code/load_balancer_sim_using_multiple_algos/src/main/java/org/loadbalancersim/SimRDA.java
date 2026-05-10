@@ -26,7 +26,7 @@ public class SimRDA {
     // sensitivity parameters
     private final static double alpha = 0.5;
     private final static double beta = 0.2;
-    private final static double gamma = 0.4;
+    private final static double gamma = 0.3;
 
     // fitness function weights for QOS parameters — must sum to 1.0
     private final static double w1 = 0.30; // makespan
@@ -89,17 +89,20 @@ public class SimRDA {
         int max_requests_assigned = Arrays.stream(vmCount).max().getAsInt();
         int min = Arrays.stream(vmCount).min().getAsInt();
         double avg = Arrays.stream(vmCount).average().getAsDouble();
+        int vmIDWithHighestAssignment = 0;
+        for(int i = 0; i < numVMs; i++) if(max_requests_assigned == vmCount[i]) vmIDWithHighestAssignment = i;
 
         int success = SimulationUtils.getNumSuccessfulRuns(finished);
         double makespan = SimulationUtils.getMakeSpan(finished);
         double avgRT = SimulationUtils.getAvgRT(finished);
         double avgUtil = SimulationUtils.getAvgUtil(finished, vmList, makespan);
         double totalCost = SimulationUtils.getTotalCost(finished);
-        double bestFitness = AlgoRDA.getBestFitness();
         double[] fitness_logs_for_convergence = AlgoRDA.getFitness_for_logs_convergence();
+        double bestFitness = AlgoRDA.getBestFitness();
 
         System.out.println("SuccessfulRuns: " + success + "/" + 1000);
-        System.out.println("VM load — max: " + max_requests_assigned + ", min: " + min + ", avg: " + avg);
+        System.out.println("VM load - max: " + max_requests_assigned + ", min: " + min + ", avg: " + avg);
+        System.out.println("VM with highest assigned requests: " + vmIDWithHighestAssignment);
         System.out.println("BestFitness: " + bestFitness);
         System.out.println("Makespan: " + makespan);
         System.out.println("Average Response Time: " + avgRT);
