@@ -61,9 +61,9 @@ public class SimRDA {
     private final static int defaultCloudlets = SimulationUtils.NUM_CLOUDLETS;
 
     // Sensitivity parameters
-    private final static double alpha = 0.5;
-    private final static double beta = 0.2;
-    private final static double gamma = 0.3;
+    private final static double alpha = 0.35;
+    private final static double beta = 0.3;
+    private final static double gamma = 0.45;
 
     // Fitness weights (must sum to 1.0)
     private final static double w1 = 0.30; // makespan
@@ -79,25 +79,25 @@ public class SimRDA {
         System.out.println("=" + "=".repeat(60));
         System.out.println();
 
-        // Create output directories
-        new File("data/convergence").mkdirs();
-        new File("data/sensitivity").mkdirs();
-
         AlgorithmType algoType =  AlgorithmType.RDA;
 
-        // Run all sensitivity analyses
-//        performSensitivityAnalysis("Population", new double[] { 30, 50, 100 }, algoType);
-//        performSensitivityAnalysis("Iterations", new double[] { 20, 50, 100, 150 }, algoType);
-//        performSensitivityAnalysis("Alpha", new double[] { 0.1, 0.2, 0.3, 0.4, 0.5 }, algoType);
-//        performSensitivityAnalysis("Beta", new double[] { 0.1, 0.2, 0.3, 0.4, 0.5 }, algoType);
-//        performSensitivityAnalysis("Gamma", new double[] { 0.1, 0.2, 0.3, 0.4, 0.5 }, algoType);
-//        performSensitivityAnalysis("Cloudlets", new double[]{100, 500, 1000, 2000}, algoType);
+         // Run all sensitivity analyses
+//        new File("data/convergence").mkdirs();
+//        new File("data/sensitivity").mkdirs();
 
+//        performSensitivityAnalysis("Population", new double[] { 25, 30, 40, 50, 75, 100, 125, 150 }, algoType);
+//        performSensitivityAnalysis("Iterations", new double[] { 10, 20, 40, 60, 80, 100, 125, 150}, algoType);
+//        performSensitivityAnalysis("Alpha", new double[] { 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6 }, algoType);
+//        performSensitivityAnalysis("Beta", new double[] { 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6 }, algoType);
+//        performSensitivityAnalysis("Gamma", new double[] { 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6 }, algoType);
+//        performSensitivityAnalysis("Cloudlets", new double[]{ 100, 250, 500, 750, 1000, 1250, 1500, 1750, 2000 }, algoType);
+
+        // algo comparison
         new File("data/comparison").mkdirs();
         new File("data/comparison/convergence").mkdirs();
-
+//
 //        performAlgorithmComparison(AlgorithmType.RDA);
-//        performAlgorithmComparison(AlgorithmType.PSO);
+        performAlgorithmComparison(AlgorithmType.PSO);
         performAlgorithmComparison(AlgorithmType.GA);
         performAlgorithmComparison(AlgorithmType.GWO);
         performAlgorithmComparison(AlgorithmType.WOA);

@@ -134,15 +134,12 @@ public class AlgoRDA {
 //            System.out.println("iter : " + it);
 
             evaluatePopulation(this.allSolutions);
-            List<QoSMetrics> currentMetrics = new ArrayList<>();
-            for (Deer deer : this.allSolutions) currentMetrics.add(deer.rawMetrics);
-            PopulationBounds bounds = fitnessFunction.computeBounds(currentMetrics);
             
-            this.roaringPhase(bounds);
+            this.roaringPhase();
             this.selectCommanders();
-            this.fightingPhase(bounds);
+            this.fightingPhase();
             int[][] harems = this.formHarems();
-            this.matingPhase(harems, bounds);
+            this.matingPhase(harems);
             this.selectNextGen();
 
             this.updateBestSolution(this.allSolutions);
@@ -186,16 +183,13 @@ public class AlgoRDA {
             rawMetrics.add(metrics);
         }
 
-        // compute population-wide min/max bounds
-        PopulationBounds bounds = fitnessFunction.computeBounds(rawMetrics);
-
         // pass 2 — normalize and assign final scalar fitness
         for (Deer deer : population) {
-            deer.fitness = fitnessFunction.normalizeAndScore(deer.rawMetrics, bounds);
+            deer.fitness = fitnessFunction.normalizeAndScore(deer.rawMetrics);
         }
     }
 
-    private void roaringPhase(PopulationBounds bounds) {
+    private void roaringPhase() {
         for (Deer male : this.males) {
             double a1 = rand.nextDouble();
             double a2 = rand.nextDouble();
@@ -215,7 +209,7 @@ public class AlgoRDA {
 
             // normalize challenger using the SAME bounds as the current population
             QoSMetrics challengerMetrics = fitnessFunction.evaluateRaw(newPosition);
-            double challengerFitness = fitnessFunction.normalizeAndScore(challengerMetrics, bounds);
+            double challengerFitness = fitnessFunction.normalizeAndScore(challengerMetrics);
 
             // now this comparison is valid — both scores on the same [0,1] scale
             if (challengerFitness < male.fitness) {
@@ -226,7 +220,7 @@ public class AlgoRDA {
         }
     }
 
-    private void fightingPhase(PopulationBounds bounds) {
+    private void fightingPhase() {
         for (Deer commander : this.commanders) {
             Deer randStag = this.stags.get(rand.nextInt(this.numStags));
             double b1 = rand.nextDouble();
@@ -250,8 +244,8 @@ public class AlgoRDA {
 
             QoSMetrics m1 = fitnessFunction.evaluateRaw(newSol1);
             QoSMetrics m2 = fitnessFunction.evaluateRaw(newSol2);
-            double f1 = fitnessFunction.normalizeAndScore(m1, bounds);
-            double f2 = fitnessFunction.normalizeAndScore(m2, bounds);
+            double f1 = fitnessFunction.normalizeAndScore(m1);
+            double f2 = fitnessFunction.normalizeAndScore(m2);
 
             // pick the better candidate between f1 and f2 first
             double[] bestNewPosition = (f1 <= f2) ? newSol1 : newSol2;
@@ -311,7 +305,7 @@ public class AlgoRDA {
         return commanders;
     }
 
-    private void matingPhase(int[][] harems, PopulationBounds bounds) {
+    private void matingPhase(int[][] harems) {
         for (int i = 0; i < this.numCommanders; ++i) {
             Deer commander = this.commanders.get(i);
 
@@ -325,7 +319,7 @@ public class AlgoRDA {
             for (int j = 0; j < intraCount; ++j) {
                 if (harems[i].length != 0) {
                     int hindIdx = harems[i][rand.nextInt(harems[i].length)];
-                    this.mate(commander, this.getDeerByIndex(hindIdx), bounds);
+                    this.mate(commander, this.getDeerByIndex(hindIdx));
                 }
             }
 
@@ -333,7 +327,7 @@ public class AlgoRDA {
             for (int j = 0; j < interCount; ++j) {
                 if (harems[otherHarem].length != 0) {
                     int hindIdx = harems[otherHarem][rand.nextInt(harems[otherHarem].length)];
-                    this.mate(commander, this.getDeerByIndex(hindIdx), bounds);
+                    this.mate(commander, this.getDeerByIndex(hindIdx));
                 }
             }
         }
@@ -341,11 +335,11 @@ public class AlgoRDA {
         // Stag mating
         for (Deer stag : this.stags) {
             Deer nearestHind = this.findNearestHind(stag);
-            this.mate(stag, nearestHind, bounds);
+            this.mate(stag, nearestHind);
         }
     }
 
-    private void mate(Deer male, Deer hind, PopulationBounds bounds) {
+    private void mate(Deer male, Deer hind) {
         if (hind == null) return;
 
         double c = rand.nextDouble();
@@ -362,7 +356,7 @@ public class AlgoRDA {
 
 //        clampPositions(offspring);
         QoSMetrics m = fitnessFunction.evaluateRaw(offspring);
-        double offspringFitness = fitnessFunction.normalizeAndScore(m, bounds);
+        double offspringFitness = fitnessFunction.normalizeAndScore(m);
 
         Deer offspringDeer = new Deer(this.uniID++, offspring, offspringFitness);
         offspringDeer.rawMetrics = m;

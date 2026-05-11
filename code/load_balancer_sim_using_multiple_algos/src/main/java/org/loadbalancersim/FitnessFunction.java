@@ -1,7 +1,5 @@
 package org.loadbalancersim;
 
-import java.util.List;
-
 class QoSMetrics {
     public final double makespan;
     public final double utilization;
@@ -16,24 +14,6 @@ class QoSMetrics {
     }
 }
 
-class PopulationBounds {
-    public final double minMakespan, maxMakespan;
-    public final double minUtil, maxUtil;
-    public final double minCost, maxCost;
-    public final double minRT, maxRT;
-
-    public PopulationBounds(
-        double minMakespan, double maxMakespan,
-        double minUtil, double maxUtil,
-        double minCost, double maxCost,
-        double minRT, double maxRT
-    ) {
-        this.minMakespan = minMakespan; this.maxMakespan = maxMakespan;
-        this.minUtil = minUtil; this.maxUtil = maxUtil;
-        this.minCost = minCost; this.maxCost = maxCost;
-        this.minRT = minRT; this.maxRT = maxRT;
-    }
-}
 
 public class FitnessFunction {
 
@@ -160,7 +140,7 @@ public class FitnessFunction {
     // PASS 2 — normalize across population and compute final fitness
     // implements Equations 9, 10, 11
     // ---------------------------------------------------------------
-    public double normalizeAndScore(QoSMetrics m, PopulationBounds bounds) {
+    public double normalizeAndScore(QoSMetrics m) {
 
         // Equation 9 — metrics we MINIMIZE (lower raw value → lower normalized score → better)
         double nMakespan = normalizeMin(m.makespan, minMakespan, maxMakespan);
@@ -174,35 +154,6 @@ public class FitnessFunction {
         // (1.0 - nUtil) inverts utilization so that all four terms are "lower = better"
         // meaning the overall fitness is minimized by the RDA like all other terms
         return w1 * nMakespan + w2 * (1.0 - nUtil) + w3 * nCost + w4 * nRT;
-    }
-
-    // ---------------------------------------------------------------
-    // compute population-wide min/max bounds across all raw metrics
-    // called once between pass 1 and pass 2 each iteration
-    // ---------------------------------------------------------------
-    public PopulationBounds computeBounds(List<QoSMetrics> allMetrics) {
-        double minMakespan = Double.MAX_VALUE, maxMakespan = -Double.MAX_VALUE;
-        double minUtil = Double.MAX_VALUE, maxUtil = -Double.MAX_VALUE;
-        double minCost = Double.MAX_VALUE, maxCost = -Double.MAX_VALUE;
-        double minRT = Double.MAX_VALUE, maxRT = -Double.MAX_VALUE;
-
-        for (QoSMetrics m : allMetrics) {
-            minMakespan = Math.min(minMakespan, m.makespan);
-            maxMakespan = Math.max(maxMakespan, m.makespan);
-            minUtil = Math.min(minUtil, m.utilization);
-            maxUtil = Math.max(maxUtil, m.utilization);
-            minCost = Math.min(minCost, m.cost);
-            maxCost = Math.max(maxCost, m.cost);
-            minRT = Math.min(minRT, m.avgResponseTime);
-            maxRT = Math.max(maxRT, m.avgResponseTime);
-        }
-
-        return new PopulationBounds(
-            minMakespan, maxMakespan,
-            minUtil, maxUtil,
-            minCost, maxCost,
-            minRT, maxRT
-        );
     }
 
     // Equation 9 — normalize a metric we MINIMIZE
