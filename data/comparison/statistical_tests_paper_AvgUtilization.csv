@@ -1,0 +1,11 @@
+Comparison,T-Test p-value,Wilcoxon p-value,Cohen's d,Effect Size,Significant (p<0.05)
+RDA vs PSO,0.0045,0.0028,-0.763,Medium,Yes
+RDA vs WOA,0.0122,0.0019,-0.668,Medium,Yes
+RDA vs GA,2.41e-07,3.24e-06,-1.510,Large,Yes
+RDA vs GWO,0.0021,0.0113,-0.833,Large,Yes
+PSO vs WOA,0.8361,0.6408,0.054,Negligible,No
+PSO vs GA,7.70e-04,0.0015,-0.917,Large,Yes
+PSO vs GWO,0.6894,0.8872,-0.104,Negligible,No
+WOA vs GA,6.92e-04,0.0015,-0.926,Large,Yes
+WOA vs GWO,0.5644,0.7457,-0.150,Negligible,No
+GA vs GWO,0.0027,0.0208,0.808,Large,Yes
